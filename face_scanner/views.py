@@ -35,11 +35,12 @@
 #
 #         return JsonResponse({'message': 'Encoding saved successfully.', 'redirect_url': '/quiz/'})
 #     return render(request, 'face_scanner/face_scan.html')
-
+from datetime import time
 
 #_________________________________________________________________________________
 
 import cv2
+import time
 import mediapipe as mp
 import face_recognition
 import numpy as np
@@ -120,86 +121,289 @@ def scan_and_store_face(request):
     return redirect('quiz_page')  # به صفحه کوییز هدایت شود
 
 #_________________________________________________________________________________
-
-
-# from django.http import JsonResponse
-#
 # @login_required
-# def scan_and_store_face(request):
-#     if request.method == "POST":
-#         user = request.user
-#         if not user.national_code:
-#             return JsonResponse({"success": False, "error": "National code is missing."})
+# def recognize_face_with_video(request):
+#     user = request.user
+#     if not user.face_data_file:
+#         return render(request, 'face_scanner/error.html', {'error': "No face data found. Please complete enrollment first."})
 #
-#         # تنظیمات MediaPipe Face Mesh
-#         mp_face_mesh = mp.solutions.face_mesh
-#         face_mesh = mp_face_mesh.FaceMesh(
-#             static_image_mode=False,
-#             max_num_faces=1,
-#             refine_landmarks=True,
-#             min_detection_confidence=0.5
-#         )
+#     # Load the saved encoding
+#     try:
+#         filename = f"{user.national_code}_{user.last_name}.pkl"
+#         file_path = settings.MEDIA_ROOT / "face_data" / filename
 #
-#         cap = cv2.VideoCapture(0)
-#         if not cap.isOpened():
-#             return JsonResponse({"success": False, "error": "Cannot access webcam."})
+#         # file_path = settings.MEDIA_ROOT / user.face_data_file.name
+#         with open(file_path, "rb") as f:
+#             saved_encoding = pickle.load(f)
+#     except FileNotFoundError:
+#         return render(request, 'face_scanner/error.html', {'error': "Face data file is missing or corrupted."})
 #
-#         face_encodings = []
-#         scan_complete = False
-#         total_landmarks = 10000
-#         landmarks_scanned = 0
+#     mp_face_mesh = mp.solutions.face_mesh
+#     face_mesh = mp_face_mesh.FaceMesh(
+#         static_image_mode=False,
+#         max_num_faces=1,
+#         refine_landmarks=True,
+#         min_detection_confidence=0.5
+#     )
 #
-#         while True:
-#             ret, frame = cap.read()
-#             if not ret:
-#                 break
+#     cap = cv2.VideoCapture(0)
+#     if not cap.isOpened():
+#         raise RuntimeError("Cannot access webcam.")
 #
-#             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+#     match_start_time = None
+#     start_time = time.time()
+#     matched = False
 #
-#             # شناسایی چهره
+#     while True:
+#         ret, frame = cap.read()
+#         if not ret:
+#             break
+#
+#         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+#
+#         # Recognize face
+#         face_locations = face_recognition.face_locations(rgb_frame)
+#         face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+#
+#         for face_encoding, face_location in zip(face_encodings, face_locations):
+#             distance = face_recognition.face_distance([saved_encoding], face_encoding)[0]
+#
+#             if distance < 0.3:  # Threshold for matching
+#                 matched = True
+#                 if match_start_time is None:
+#                     match_start_time = time.time()
+#
+#                 top, right, bottom, left = face_location
+#                 cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
+#                 cv2.putText(frame, "Matched", (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+#             else:
+#                 top, right, bottom, left = face_location
+#                 cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+#
+#         cv2.imshow("Face Recognition", frame)
+#
+#         if matched and time.time() - match_start_time >= 5:
+#             cap.release()
+#             cv2.destroyAllWindows()
+#             return render(request, 'face_scanner/success_scan_with_video.html', {'message': "Match found!"})
+#
+#         if time.time() - start_time > 30 or cv2.waitKey(1) & 0xFF == ord('q'):
+#             break
+#
+#     cap.release()
+#     cv2.destroyAllWindows()
+#     return render(request, 'face_scanner/error.html', {'error': "No match found within the time limit."})
+
+
+# @login_required
+# def recognize_face_with_photo(request):
+#     user = request.user
+#     if not user.face_data_file:
+#         return render(request, 'face_scanner/error.html', {'error': "No face data found. Please complete enrollment first."})
+#
+#     # Load the saved encoding
+#     try:
+#         filename = f"{user.national_code}_{user.last_name}.pkl"
+#         file_path = settings.MEDIA_ROOT / "face_data" / filename
+#         # file_path = settings.MEDIA_ROOT / user.face_data_file.name
+#         with open(file_path, "rb") as f:
+#             saved_encoding = pickle.load(f)
+#     except FileNotFoundError:
+#         return render(request, 'face_scanner/error.html', {'error': "Face data file is missing or corrupted."})
+#
+#     mp_face_mesh = mp.solutions.face_mesh
+#     face_mesh = mp.solutions.face_mesh.FaceMesh(
+#         static_image_mode=False,
+#         max_num_faces=1,
+#         refine_landmarks=True,
+#         min_detection_confidence=0.5
+#     )
+#
+#     cap = cv2.VideoCapture(0)
+#     if not cap.isOpened():
+#         raise RuntimeError("Cannot access webcam.")
+#
+#     photo_captured = False
+#     while True:
+#         ret, frame = cap.read()
+#         if not ret:
+#             break
+#
+#         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+#
+#         # Process the frame with Face Mesh
+#         mesh_results = face_mesh.process(rgb_frame)
+#         if mesh_results.multi_face_landmarks:
+#             for face_landmarks in mesh_results.multi_face_landmarks:
+#                 mp.solutions.drawing_utils.draw_landmarks(
+#                     frame, face_landmarks, mp.solutions.face_mesh.FACEMESH_TESSELATION
+#                 )
+#
+#         cv2.imshow("Face Recognition", frame)
+#
+#         # Capture photo
+#         if cv2.waitKey(1) & 0xFF == ord('s'):
+#             photo_captured = True
 #             face_locations = face_recognition.face_locations(rgb_frame)
-#             encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+#             face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
 #
-#             # MediaPipe Face Mesh: پردازش
-#             mesh_results = face_mesh.process(rgb_frame)
-#             if mesh_results.multi_face_landmarks:
-#                 for face_landmarks in mesh_results.multi_face_landmarks:
-#                     for i, landmark in enumerate(face_landmarks.landmark):
-#                         if 0 < landmark.x < 1 and 0 < landmark.y < 1:
-#                             landmarks_scanned += 1
+#             for face_encoding, face_location in zip(face_encodings, face_locations):
+#                 distance = face_recognition.face_distance([saved_encoding], face_encoding)[0]
 #
-#                     if landmarks_scanned >= total_landmarks:
-#                         scan_complete = True
-#                         if encodings:
-#                             face_encodings.append(encodings[0])
+#                 if distance < 0.3:  # Threshold for matching
+#                     cap.release()
+#                     cv2.destroyAllWindows()
+#                     return render(request, 'face_scanner/success_scan_with_photo.html', {'message': "Match found!"})
 #
-#             # پایان اسکن
-#             if scan_complete:
-#                 break
+#             break
 #
-#         cap.release()
+#         if cv2.waitKey(1) & 0xFF == ord('q'):
+#             break
 #
-#         # ذخیره داده‌ها
-#         if face_encodings:
-#             avg_encoding = np.mean(face_encodings, axis=0)
-#             filename = f"{user.national_code}_{user.last_name}.pkl"
-#             file_path = settings.MEDIA_ROOT / "face_data" / filename
+#     cap.release()
+#     cv2.destroyAllWindows()
+#     if photo_captured:
+#         return render(request, 'face_scanner/error.html', {'error': "No match found for the captured photo."})
+#     return redirect('face_recognition')
+
+
+import cv2
+import mediapipe as mp
+import face_recognition
+import pickle
+from django.shortcuts import render
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+import os
+
+@login_required
+def recognize_face_with_video(request):
+    user = request.user
+
+    # Load saved encoding
+    if not user.face_data_file:
+        return render(request, 'face_scanner/error.html', {'error': "No face data found. Please enroll first."})
+
+    filename = f"{user.national_code}_{user.last_name}.pkl"
+    file_path = settings.MEDIA_ROOT / "face_data" / filename
+    if not os.path.exists(file_path):
+        return render(request, 'face_scanner/error.html', {'error': "Face data file is missing."})
+
+    with open(file_path, "rb") as f:
+        saved_encoding = pickle.load(f)
+
+    mp_face_mesh = mp.solutions.face_mesh
+    face_mesh = mp_face_mesh.FaceMesh(
+        static_image_mode=False,
+        max_num_faces=1,
+        refine_landmarks=True,
+        min_detection_confidence=0.5
+    )
+
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        raise RuntimeError("Cannot access webcam.")
+
+    start_time = time.time()
+    match_start_time = None
+    recognized = False
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        face_locations = face_recognition.face_locations(rgb_frame)
+        face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+
+        for face_encoding in face_encodings:
+            distances = face_recognition.face_distance([saved_encoding], face_encoding)
+            if distances[0] < 0.3:  # Threshold
+                recognized = True
+                match_start_time = time.time() if match_start_time is None else match_start_time
+                break
+
+        if recognized and time.time() - match_start_time >= 3:  # Confirm recognition for 3 seconds
+            cap.release()
+            return render(request, 'face_scanner/success_scan_with_video.html', {'message': "Face recognized successfully!"})
+
+        if time.time() - start_time > 30:  # Timeout
+            break
+
+        # if cv2.waitKey(1) & 0xFF == ord('q'):  # Quit
+        #     break
+
+    cap.release()
+    return render(request, 'face_scanner/error.html', {'error': "Face recognition failed or timed out."})
+
+
+
+# @login_required
+# def recognize_face_with_photo(request):
+#     user = request.user
+#     if not user.face_data_file:
+#         return render(request, 'face_scanner/error.html', {'error': "No face data found. Please complete enrollment first."})
 #
-#             with open(file_path, "wb") as f:
-#                 pickle.dump(avg_encoding, f)
+#     # Load the saved encoding
+#     try:
+#         file_path = settings.MEDIA_ROOT / user.face_data_file.name
+#         with open(file_path, "rb") as f:
+#             saved_encoding = pickle.load(f)
+#     except FileNotFoundError:
+#         return render(request, 'face_scanner/error.html', {'error': "Face data file is missing or corrupted."})
 #
-#             # ذخیره فایل در مدل کاربر
-#             user.face_data_file.name = f"face_data/{filename}"
-#             user.save()
+#     mp_face_mesh = mp.solutions.face_mesh
+#     face_mesh = mp.solutions.face_mesh.FaceMesh(
+#         static_image_mode=False,
+#         max_num_faces=1,
+#         refine_landmarks=True,
+#         min_detection_confidence=0.5
+#     )
 #
-#             return JsonResponse({"success": True})
+#     cap = cv2.VideoCapture(0)
+#     if not cap.isOpened():
+#         raise RuntimeError("Cannot access webcam.")
 #
-#         return JsonResponse({"success": False, "error": "No face detected during scanning."})
+#     photo_captured = False
+#     while True:
+#         ret, frame = cap.read()
+#         if not ret:
+#             break
 #
-#     return JsonResponse({"success": False, "error": "Invalid request method."})
+#         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 #
+#         # Process the frame with Face Mesh
+#         mesh_results = face_mesh.process(rgb_frame)
+#         if mesh_results.multi_face_landmarks:
+#             for face_landmarks in mesh_results.multi_face_landmarks:
+#                 mp.solutions.drawing_utils.draw_landmarks(
+#                     frame, face_landmarks, mp.solutions.face_mesh.FACEMESH_TESSELATION
+#                 )
 #
+#         cv2.imshow("Face Recognition", frame)
 #
-# def scan_page(request):
-#     return render(request, 'face_scanner/scan.html')
+#         # Capture photo
+#         if cv2.waitKey(1) & 0xFF == ord('s'):
+#             photo_captured = True
+#             face_locations = face_recognition.face_locations(rgb_frame)
+#             face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
 #
+#             for face_encoding, face_location in zip(face_encodings, face_locations):
+#                 distance = face_recognition.face_distance([saved_encoding], face_encoding)[0]
+#
+#                 if distance < 0.3:  # Threshold for matching
+#                     cap.release()
+#                     cv2.destroyAllWindows()
+#                     return render(request, 'face_scanner/success_scan_with_photo.html', {'message': "Match found!"})
+#
+#             break
+#
+#         if cv2.waitKey(1) & 0xFF == ord('q'):
+#             break
+#
+#     cap.release()
+#     cv2.destroyAllWindows()
+#     if photo_captured:
+#         return render(request, 'face_scanner/error.html', {'error': "No match found for the captured photo."})
+#     return redirect('face_recognition')

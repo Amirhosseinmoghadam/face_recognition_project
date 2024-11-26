@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container text-center">
+    <div class="alert alert-success mt-5" role="alert">
+        <h4 class="alert-heading">Success!</h4>
+        <p>Your action was completed successfully with photo.</p>
+        <hr>
+        <p class="mb-0">
+            <a href="{% url 'home' %}" class="btn btn-primary">Go to Home</a>
+        </p>
+    </div>
+</div>
+{% endblock %}
