@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Face Detection</title>
+    <script>
+        let socket = new WebSocket("ws://127.0.0.1:8000/ws/face/");
+        socket.onmessage = function(event) {
+            let image = document.getElementById("video-feed");
+            image.src = "data:image/jpeg;base64," + event.data;
+        };
+    </script>
+</head>
+<body>
+    <h1>Face Detection</h1>
+    <img id="video-feed" alt="Video Feed" />
+</body>
+</html>

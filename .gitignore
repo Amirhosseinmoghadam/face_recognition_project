@@ -1,0 +1,6 @@
+/.venv/
+/accounts/migrations/
+/face_scanner/migrations/
+/db.sqlite3
+/face_data/
+

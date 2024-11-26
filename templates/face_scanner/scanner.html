@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Scanner</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <style>
+        #video {
+            border: 1px solid black;
+            width: 100%;
+        }
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+    <h2>Face Scanner</h2>
+    <video id="video" autoplay muted></video>
+    <canvas id="canvas"></canvas>
+    <button id="save-button">Save Face Data</button>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        const faceMesh = new FaceMesh({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`});
+        faceMesh.setOptions({
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5,
+        });
+
+        async function setupCamera() {
+            const stream = await navigator.mediaDevices.getUserMedia({video: true});
+            video.srcObject = stream;
+            await video.play();
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+        }
+
+        async function processFrame() {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const results = await faceMesh.send({image: video});
+            if (results.multiFaceLandmarks) {
+                for (const landmarks of results.multiFaceLandmarks) {
+                    for (const point of landmarks) {
+                        const x = point.x * canvas.width;
+                        const y = point.y * canvas.height;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 1, 0, 2 * Math.PI);
+                        ctx.fillStyle = "green";
+                        ctx.fill();
+                    }
+                }
+            }
+            requestAnimationFrame(processFrame);
+        }
+
+        document.getElementById('save-button').addEventListener('click', async () => {
+            const response = await fetch('/face-scanner/save-face-data/', {
+                method: 'POST',
+                headers: {'X-CSRFToken': '{{ csrf_token }}'},
+                body: JSON.stringify({face_data: 'sample_face_data_here'}) // Replace with actual face data
+            });
+            const data = await response.json();
+            if (data.success) {
+                alert('Face data saved successfully!');
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        });
+
+        setupCamera().then(() => {
+            faceMesh.onResults(processFrame);
+        });
+    </script>
+</body>
+</html>

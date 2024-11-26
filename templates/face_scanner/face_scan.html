@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Face Scanner</h2>
+<p>Please ensure your webcam is active and follow the instructions below.</p>
+
+<video id="video" autoplay muted></video>
+<button id="start-scan" class="btn btn-primary">Start Scanning</button>
+<div id="status"></div>
+
+<script>
+    const video = document.getElementById('video');
+    const statusDiv = document.getElementById('status');
+    const startButton = document.getElementById('start-scan');
+
+    // دسترسی به دوربین
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+            video.srcObject = stream;
+        })
+        .catch(err => {
+            console.error("Error accessing camera:", err);
+            statusDiv.textContent = "Unable to access camera.";
+        });
+
+    // ارسال انکدینگ‌ها به سرور
+    startButton.addEventListener('click', async () => {
+        statusDiv.textContent = "Scanning in progress...";
+        
+        // فراخوانی اسکریپت بک‌اند برای پردازش
+        const response = await fetch('/face-scanner/process/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ encoding: "[...]"}), // انکدینگ باید از مدل Mediapipe ارسال شود
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+            statusDiv.textContent = "Scanning complete. Redirecting...";
+            window.location.href = result.redirect_url;
+        } else {
+            statusDiv.textContent = "Error: " + result.error;
+        }
+    });
+</script>
+{% endblock %}
