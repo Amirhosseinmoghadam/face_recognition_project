@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container">
+        <h2>Face Mesh Visualization</h2>
+        <div class="video-container">
+            <img src="{% url 'face_mesh_stream' %}" class="img-fluid">
+        </div>
+    </div>
+
+    <a class="btn btn-success" role="button" href="/face-scanner/scan_with_video/">load face with video</a>
+
+
+{% endblock %}

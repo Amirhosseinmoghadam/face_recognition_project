@@ -407,3 +407,75 @@ def recognize_face_with_video(request):
 #     if photo_captured:
 #         return render(request, 'face_scanner/error.html', {'error': "No match found for the captured photo."})
 #     return redirect('face_recognition')
+
+
+import cv2
+import numpy as np
+import mediapipe as mp
+from django.http import StreamingHttpResponse
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+
+
+@login_required
+def face_mesh_stream(request):
+    def generate_frames():
+        # تنظیمات MediaPipe Face Mesh
+        mp_face_mesh = mp.solutions.face_mesh
+        mp_drawing = mp.solutions.drawing_utils
+        mp_drawing_styles = mp.solutions.drawing_styles
+
+        face_mesh = mp_face_mesh.FaceMesh(
+            static_image_mode=False,
+            max_num_faces=1,
+            refine_landmarks=True,
+            min_detection_confidence=0.5
+        )
+
+        cap = cv2.VideoCapture(0)
+
+        while True:
+            success, frame = cap.read()
+            if not success:
+                break
+
+            # تبدیل فریم به RGB
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+            # پردازش با Face Mesh
+            results = face_mesh.process(frame_rgb)
+
+            # اگر چهره‌ای شناسایی شد
+            if results.multi_face_landmarks:
+                for face_landmarks in results.multi_face_landmarks:
+                    # رسم مش چهره
+                    mp_drawing.draw_landmarks(
+                        image=frame,
+                        landmark_list=face_landmarks,
+                        connections=mp_face_mesh.FACEMESH_TESSELATION,
+                        landmark_drawing_spec=None,
+                        connection_drawing_spec=mp_drawing_styles
+                        .get_default_face_mesh_tesselation_style()
+                    )
+
+            # کدگذاری فریم برای ارسال
+            ret, buffer = cv2.imencode('.jpg', frame)
+            frame = buffer.tobytes()
+
+            # ارسال فریم
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+    return StreamingHttpResponse(generate_frames(),
+                                 content_type='multipart/x-mixed-replace; boundary=frame')
+
+
+@login_required
+def face_mesh_view(request):
+    return render(request, 'face_scanner/face_mesh.html')
+
+
+
+@login_required
+def face_mesh_view_load(request):
+    return render(request, 'face_scanner/face_mesh_load.html')
