@@ -1,13 +1,34 @@
-{% extends "base.html" %}
-{% block content %}
-    <h2>Welcome</h2>
-    
-    
+{#{% extends "base.html" %}#}
+{#{% block content %}#}
+{#    <h2>Welcome</h2>#}
+{##}
+{##}
 {#    <a class="btn btn-primary" role="button" href="accounts/quiz/">quize</a>#}
-    
+{##}
 {#    <a class="btn btn-success" role="button" href="/face-scanner/scan/">Scan face</a>#}
-    <a class="btn btn-success" role="button" href="/face-scanner/face-mesh/">Scan Face Page</a>
+{#    <a class="btn btn-success" role="button" href="/face-scanner/face-mesh/">Scan Face Page</a>#}
 {#    <a class="btn btn-success" role="button" href="/face-scanner/scan_with_video/">load face with video</a>#}
-    <a class="btn btn-success" role="button" href="/face-scanner/face-mesh_load/">load face with Page</a>
+{#    <a class="btn btn-success" role="button" href="/face-scanner/face-mesh_load/">load face with Page</a>#}
 {#    <a class="btn btn-success" role="button" href="/face-scanner/scan_with_photo/">load face with photo</a>#}
+{#{% endblock %}#}
+
+
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="text-center">
+        <h1 class="mt-4">Welcome to My Quiz Site!</h1>
+        <p class="lead mt-3">
+            Test your knowledge with our multiple-choice quizzes.
+            Each quiz is unique and consists of randomly selected questions.
+        </p>
+        <p class="text-muted">Sign in to save your progress or take a quick test as a guest.</p>
+        {% if user.is_authenticated %}
+            <a href="#" class="btn btn-success btn-lg mt-3">Start Quiz</a>
+            <a class="btn btn-success btn-lg mt-3" role="button" href="/face-scanner/face-mesh/">Scan Face Page</a>
+            <a class="btn btn-success btn-lg mt-3" role="button" href="/face-scanner/face-mesh_load/">load face with Page</a>
+        {% else %}
+            <a href="{% url 'login' %}" class="btn btn-primary btn-lg mt-3">Login to Start</a>
+        {% endif %}
+    </div>
 {% endblock %}
