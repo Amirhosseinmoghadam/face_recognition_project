@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>Unrecognized Face</h2>
+    <p>{{ error }}</p>
+    
+    {% if image_path %}
+    <img src="{{ MEDIA_URL }}{{ image_path }}" alt="Captured Unrecognized Face" class="img-fluid">
+    {% endif %}
+    
+    <div class="mt-3">
+        <a href="{% url 'face-scanner/face-mesh/' %}" class="btn btn-primary">Enroll Face</a>
+        <a href="{% url 'home' %}" class="btn btn-secondary">Go to Home</a>
+    </div>
+</div>
+{% endblock %}

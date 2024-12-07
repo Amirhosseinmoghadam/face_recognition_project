@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -38,10 +39,41 @@ INSTALLED_APPS = [
     'face_scanner',
     'accounts',
     'channels',
+    'django_celery_beat',
 
 ]
-ASGI_APPLICATION = 'your_project_name.asgi.application'
+ASGI_APPLICATION = 'face_recognition_project.asgi.application'
 AUTH_USER_MODEL = 'accounts.CustomUser'
+
+
+# # Celery Configuration
+# CELERY_BROKER_URL = 'redis://localhost:6379'
+# CELERY_RESULT_BACKEND = 'redis://localhost:6379'
+# CELERY_ACCEPT_CONTENT = ['application/json']
+# CELERY_TASK_SERIALIZER = 'json'
+# CELERY_RESULT_SERIALIZER = 'json'
+# CELERY_TIMEZONE = 'Asia/Tehran'
+
+# اگر می‌خواهید تسک به صورت دوره‌ای اجرا شود
+# CELERY_BEAT_SCHEDULE = {
+#     'print-message-every-20-seconds': {
+#         'task': 'your_app_name.tasks.periodic_print_message',
+#         'schedule': 20.0,
+#     },
+# }
+# face_recognition_project/settings.py
+
+# ... تنظیمات دیگر ...
+
+# تنظیمات Celery
+CELERY_BROKER_URL = 'redis://localhost:6379/0'  # آدرس Redis
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'  # آدرس Redis برای ذخیره نتایج
+
+# گزینه‌های اضافی (اختیاری)
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -107,7 +139,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Tehran'
 
 USE_I18N = True
 

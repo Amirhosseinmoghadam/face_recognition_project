@@ -1,12 +1,11 @@
+# face_scanner urls.py
+
 from django.urls import path, include
 from . import views
 from django.conf import settings
 from django.conf.urls.static import static
 
-from .views import (scan_and_store_face, recognize_face_with_video, face_mesh_view, face_mesh_stream,
-                    face_mesh_view_load,
-    # recognize_face_with_photo
-                    )
+from .views import *
 
 urlpatterns = [
 
@@ -17,8 +16,8 @@ urlpatterns = [
 
     path('face-mesh_load/', face_mesh_view_load, name='face_mesh_view_load'),
 
-
     path('face-mesh/stream/', face_mesh_stream, name='face_mesh_stream'),
     path('accounts/', include('accounts.urls')),
+    path('start-count/', views.start_count, name='start_count'),
 ]
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
